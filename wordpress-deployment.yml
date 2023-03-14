@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wordpress
+  namespace: projet
+  labels:
+    app: wordpress
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: wordpress
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: wordpress
+    spec:  
+      containers:
+      - name: wordpress
+        image: wordpress:latest
+        ports:
+          - containerPort: 80
+        env:
+          - name: WORDPRESS_DB_HOST
+            value: mysql-db
+          - name: WORDPRESS_DB_USER
+            value: jules
+          - name: WORDPRESS_DB_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: wordpress-secrets
+                key: mysql_password
+          - name: WORDPRESS_DB_NAME
+            value: mysqldb
+        volumeMounts:
+        - mountPath: /var/www/html
+          name: wordpress-datas
+  
+      volumes:
+      - name: wordpress-datas
+        hostPath:
+          path: /data-wordpress
+          type: Directory  
+       
+---
+apiVersion: v1
+kind: Service
+metadata:
+  creationTimestamp: null
+  labels:
+    app: wordpress
+  name: wordpress
+  namespace: projet
+spec:
+  ports:
+  - nodePort: 30012
+    port: 80
+    protocol: TCP
+    targetPort: 80
+  selector:
+    app: wordpress
+  type: NodePort
+status:
+  loadBalancer: {}
+

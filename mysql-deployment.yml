@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql-db
+  namespace: projet
+  labels:
+    app: wp_db
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: wp_db
+      tier: mysql
+  strategy:
+    type: Recreate 
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: wp_db
+        tier: mysql
+    spec:
+      containers:
+      - name: mysql
+        image: mysql:5.7
+        ports:
+          - containerPort: 3306
+        env:
+          - name: MYSQL_DATABASE
+            value: mysqldb
+          - name: MYSQL_USER
+            value: jules
+          - name: MYSQL_PASSWORD
+            valueFrom:
+              secretKeyRef: 
+                name: wordpress-secrets
+                key: mysql_password
+          - name: MYSQL_RANDOM_ROOT_PASSWORD
+            valueFrom:
+              secretKeyRef: 
+                name: wordpress-secrets
+                key: mysql_random_root_password
+        volumeMounts:
+        - mountPath: /var/lib/mysql
+          name: mysql-datas
+  
+      volumes:
+      - name: mysql-datas
+        hostPath:
+          path: /data-mysql
+          type: Directory
+---
+apiVersion: v1
+kind: Service
+metadata:
+  creationTimestamp: null
+  labels:
+    app: wp_db
+  name: mysql-db
+  namespace: projet
+spec:
+  ports:
+  - port: 3306
+    protocol: TCP
+    targetPort: 3306
+  selector:
+    app: mysql-db
+  type: ClusterIP
+status:
+  loadBalancer: {}
